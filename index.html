@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Plant Care Reminder App</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Plant Care Reminder</h1>
+        <p>
+          Search for a plant to get detailed care information and set reminders.
+        </p>
+      </header>
+
+      <div class="search-section">
+        <input
+          type="text"
+          id="plant-search"
+          placeholder="Enter plant name..."
+        />
+        <button id="search-button">Search</button>
+      </div>
+
+      <div id="plant-info" class="plant-info"></div>
+      <div id="care-info" class="care-info" style="display: none">
+        <h3>Care Information</h3>
+        <p>
+          <strong>Sunlight Requirements:</strong> <span id="sunlight"></span>
+        </p>
+        <p>
+          <strong>Watering Frequency:</strong>
+          <span id="watering-frequency"></span>
+        </p>
+        <p><strong>Care Tips:</strong> <span id="care-tips"></span></p>
+      </div>
+      <div id="reminder-section" class="reminder-section" style="display: none">
+        <h3>Set a Reminder</h3>
+        <p>Remind me to water <span id="plant-name"></span> every:</p>
+        <select id="reminder-frequency">
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="biweekly">Biweekly</option>
+        </select>
+        <button id="set-reminder-button">Set Reminder</button>
+      </div>
+
+      <div id="reminder-message" style="display: none"></div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
