@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const multer = require("multer");
+require("dotenv").config();
 const mongoose = require("mongoose");
 const app = express();
 
@@ -10,8 +11,7 @@ app.use(multer().none());
 
 
 // Connect to MongoDB
-const dbURI =
-  "mongodb+srv://sd6200:89ZFJLQ40YR51QdF@cluster0.j6q3g.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+const dbURI = process.env.MONGO_URI;
 mongoose
   .connect(dbURI, { dbName: "plantDb" })
   .then(() => console.log("Connected to MongoDB Atlas"))
