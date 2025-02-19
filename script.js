@@ -1,12 +1,18 @@
-const plantSearchInput = document.getElementById("plant-search");
-const suggestionList = document.getElementById("suggestion-list");
-const plantList = document.getElementById("plant-list");
-const plantModal = document.getElementById("plant-modal");
-const modalCloseButton = document.getElementById("close-modal");
-const modalContent = document.getElementById("modal-body");
-const plantFormModal = document.getElementById("plant-form-modal");
-const openFormModalBtn = document.getElementById("open-form-modal");
-const closeFormModalBtn = document.getElementById("close-form-modal");
+// Helper function to get DOM elements
+const getElement = (id) => document.getElementById(id);
+
+// Get all required DOM elements
+const plantSearchInput = getElement("plant-search");
+const suggestionList = getElement("suggestion-list");
+const plantTableBody = getElement("plant-table-body");
+const plantModal = getElement("plant-modal");
+const modalCloseButton = getElement("close-modal");
+const modalContent = getElement("modal-body");
+const plantFormModal = getElement("plant-form-modal");
+const openFormModalBtn = getElement("open-form-modal");
+const closeFormModalBtn = getElement("close-form-modal");
+const plantForm = getElement("plant-form");
+const submitButton = getElement("submit-button");
 
 // API endpoint on the server
 const SERVER_API_URL = "http://localhost:3000/plants";
@@ -24,37 +30,62 @@ async function fetchPlants() {
   }
 }
 
-// Create a New Plant
-async function addPlant(event) {
-  event.preventDefault();
-
-  const newPlant = {
-    common_name: document.getElementById("common_name").value,
-    scientific_name: document.getElementById("scientific_name").value,
-    family: document.getElementById("family").value,
-    sunlight: document.getElementById("sunlight").value,
-    watering: document.getElementById("watering").value,
-    image_url: document.getElementById("image_url").value,
+// Helper function to get form data
+function getFormValues() {
+  return {
+    common_name: getElement("common_name").value.trim(),
+    scientific_name: getElement("scientific_name").value.trim(),
+    family: getElement("family").value.trim(),
+    sunlight: getElement("sunlight").value,
+    watering: getElement("watering").value,
+    image_url: getElement("image_url").value.trim(),
   };
+}
+
+// Helper function to reset form
+function resetForm() {
+  plantForm.reset();
+  delete plantForm.dataset.id;
+}
+
+// Show & Hide Modals
+function openModal(title, buttonText) {
+  getElement("form-title").innerText = title;
+  submitButton.innerText = buttonText;
+  plantFormModal.style.display = "block";
+}
+
+function closeModal() {
+  plantFormModal.style.display = "none";
+}
+
+// Create or Update a Plant
+async function savePlant(event) {
+  event.preventDefault();
+  const plantId = plantForm.dataset.id;
+  const plantData = getFormValues();
+  const url = plantId ? `${SERVER_API_URL}/${plantId}` : SERVER_API_URL;
+  const method = plantId ? "PUT" : "POST";
 
   try {
-    const response = await fetch(SERVER_API_URL, {
-      method: "POST",
+    const response = await fetch(url, {
+      method,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newPlant),
+      body: JSON.stringify(plantData),
     });
 
-    if (!response.ok) throw new Error("Failed to add plant");
+    if (!response.ok)
+      throw new Error(`Failed to ${plantId ? "update" : "add"} plant`);
 
     fetchPlants();
-    
-    document.getElementById("plant-form-modal").style.display = "none";
+    resetForm();
+    closeModal();
   } catch (error) {
-    console.error("Error adding plant:", error);
+    console.error(`Error ${plantId ? "updating" : "adding"} plant:`, error);
   }
 }
 
-// Load Plant for UPDATE in Modal
+// Load Plant for Editing
 async function editPlant(id) {
   try {
     const response = await fetch(`${SERVER_API_URL}/${id}`);
@@ -62,58 +93,16 @@ async function editPlant(id) {
 
     const plant = await response.json();
 
-    // Populate the modal form fields with plant data
-    document.getElementById("common_name").value = plant.common_name;
-    document.getElementById("scientific_name").value = plant.scientific_name;
-    document.getElementById("family").value = plant.family;
-    document.getElementById("sunlight").value = plant.sunlight;
-    document.getElementById("watering").value = plant.watering;
-    document.getElementById("image_url").value = plant.image_url;
-
-    // Update modal UI elements
-    document.getElementById("form-title").innerText = "Edit Plant";
-    document.getElementById("submit-button").innerText = "Update Plant";
-    document.getElementById("plant-form").dataset.id = id;
-
-    document.getElementById("plant-form-modal").style.display = "block";
-  } catch (error) {
-    console.error("Error fetching plant for edit:", error);
-  }
-}
-
-// Submit the Updated Plant Data
-async function updatePlant(event) {
-  event.preventDefault();
-  const plantId = document.getElementById("plant-form").dataset.id;
-  if (!plantId) return addPlant(event); // If no ID, create new plant instead
-
-  const updatedPlant = {
-    common_name: document.getElementById("common_name").value,
-    scientific_name: document.getElementById("scientific_name").value,
-    family: document.getElementById("family").value,
-    sunlight: document.getElementById("sunlight").value,
-    watering: document.getElementById("watering").value,
-    image_url: document.getElementById("image_url").value,
-  };
-
-  try {
-    const response = await fetch(`${SERVER_API_URL}/${plantId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updatedPlant),
+    // Populate the form with plant data
+    Object.keys(plant).forEach((key) => {
+      if (getElement(key)) getElement(key).value = plant[key];
     });
 
-    if (!response.ok) throw new Error("Failed to update plant");
-
-    document.getElementById("plant-form").reset();
-    document.getElementById("submit-button").innerText = "Add Plant";
-    delete document.getElementById("plant-form").dataset.id;
-
-    fetchPlants();
-
-    document.getElementById("plant-form-modal").style.display = "none";
+    // Set plant ID for updating and open the modal
+    plantForm.dataset.id = id;
+    openModal("Edit Plant", "Update Plant");
   } catch (error) {
-    console.error("Error updating plant:", error);
+    console.error("Error fetching plant for edit:", error);
   }
 }
 
@@ -122,7 +111,9 @@ async function deletePlant(id) {
   if (!confirm("Are you sure you want to delete this plant?")) return;
 
   try {
-    const response = await fetch(`${SERVER_API_URL}/${id}`, { method: "DELETE" });
+    const response = await fetch(`${SERVER_API_URL}/${id}`, {
+      method: "DELETE",
+    });
     if (!response.ok) throw new Error("Failed to delete plant");
 
     fetchPlants();
@@ -131,33 +122,47 @@ async function deletePlant(id) {
   }
 }
 
+// Display Plants in a Table
+function displayPlants(plants) {
+  plantTableBody.innerHTML = "";
+
+  plants.forEach((plant) => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+        <td>${plant.common_name}</td>
+        <td>${plant.scientific_name}</td>
+        <td>${plant.family}</td>
+        <td>${plant.sunlight}</td>
+        <td>${plant.watering}</td>
+        <td><img src="${plant.image_url}" alt="${plant.common_name}" width="50"></td>
+        <td>
+            <button onclick="editPlant('${plant._id}')">✏️</button>
+            <button onclick="deletePlant('${plant._id}')">🗑️</button>
+        </td>
+    `;
+    plantTableBody.appendChild(row);
+  });
+}
+
+// Open modal for adding a new plant
+openFormModalBtn.addEventListener("click", () => {
+  resetForm();
+  openModal("Add a New Plant", "Add Plant");
+});
+
+// Close modal when clicking the close button or outside content
+closeFormModalBtn.addEventListener("click", closeModal);
+window.addEventListener("click", (event) => {
+  if (event.target === plantFormModal) closeModal();
+});
+
+// Attach form submission event listener
+plantForm.addEventListener("submit", savePlant);
+
 // Load plants when the page loads
 document.addEventListener("DOMContentLoaded", fetchPlants);
 
-// Attach form submission event listener
-document.getElementById("plant-form").addEventListener("submit", updatePlant);
 
-
-// Open modal when clicking "Add New Plant" button
-openFormModalBtn.addEventListener("click", () => {
-  document.getElementById("form-title").innerText = "Add a New Plant";
-  document.getElementById("submit-button").innerText = "Add Plant";
-  document.getElementById("plant-form").reset();
-  delete document.getElementById("plant-form").dataset.id;
-  plantFormModal.style.display = "block";
-});
-
-// Close modal when clicking the close button
-closeFormModalBtn.addEventListener("click", () => {
-  plantFormModal.style.display = "none";
-});
-
-// Close modal when clicking outside the modal content
-window.addEventListener("click", (event) => {
-  if (event.target === plantFormModal) {
-    plantFormModal.style.display = "none";
-  }
-});
 
 // ==================== OLD CODES FROM LAST SEM ==================== //
 //dynamic populate search input
@@ -178,7 +183,7 @@ async function fetchPlantSuggestions(query) {
       throw new Error("Network response was not ok");
     }
     const data = await response.json();
-    console.log("API Response:", data); 
+    console.log("API Response:", data);
 
     const filteredData = data.filter(
       (plant) =>
